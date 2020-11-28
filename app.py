@@ -6,8 +6,7 @@ from models.options import Option
 from models.polls import Poll
 import random
 
-DATABASE_PROMPT = "Enter the DATABASE_URI value or leave empty to load from .env file: "
-MENU_PROMPT = """-- Menu --
+MENU_PROMPT = """\n\n------ Menu ------
 
 1) Create new poll
 2) List open polls
@@ -16,7 +15,7 @@ MENU_PROMPT = """-- Menu --
 5) Select a random winner from a poll option
 6) Exit
 
-Enter your choice: """
+Enter your choice: \n"""
 
 NEW_OPTION_PROMPT = "Enter new option text (or leave empty to stop adding options): "
 
@@ -32,9 +31,9 @@ def prompt_create_poll():
 
 def list_open_polls():
     polls = Poll.all()
-
+    print("\n\t\t------Open Polls------\n\n")
     for poll in polls:
-        print(f"{poll.id}: {poll.title} (created by {poll.owner})")
+        print(f"\t\t{poll.id}: {poll.title} (created by {poll.owner})")
 
 
 def prompt_vote_poll():
