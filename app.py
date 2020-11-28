@@ -5,6 +5,9 @@ from connections.connection_pool import get_connection
 from models.options import Option
 from models.polls import Poll
 import random
+import charts
+import matplotlib.pyplot as plt
+import platform
 
 MENU_PROMPT = """\n\n------ Menu ------
 
@@ -13,7 +16,8 @@ MENU_PROMPT = """\n\n------ Menu ------
 3) Vote on a poll
 4) Show poll votes
 5) Select a random winner from a poll option
-6) Exit
+6) Create pie chart for plot results
+7) Exit
 
 Enter your choice: \n"""
 
@@ -74,6 +78,12 @@ def show_poll_votes():
     except ZeroDivisionError:
         print("No votes were casted for this poll yet.")
 
+def poll_name_by_id(polls, poll_id):
+    for poll in polls:
+        if poll.id == poll_id:
+            return poll.title
+    return "No title"
+
 
 def randomize_poll_winner():
     poll_id = int(input("Enter poll you'd like to pick a winner for: "))
@@ -86,13 +96,59 @@ def randomize_poll_winner():
     winner = random.choice(votes)
     print(f"The randomly selected winner is {winner[0]}.")
 
+def save_plot(options, votes, poll_name):
+    # prompt for desire to save plot
+    save_plot = input("Press 'y' to save this plot (press any other key to go back to main menu): ")
+
+    # save plot
+    if save_plot.lower() == 'y':
+        # create figure again as plt.show() destroys figure
+        fig = charts.create_pie_chart(options, votes, poll_name)
+        # modify poll name in order to delete special characters
+        for char in ['?','*', '.', '"',"'", '/', '[', ']', ':', ';', '|']:
+            poll_name = poll_name.replace(char, "").strip()
+        # check OS (in order to use correct slash for saving)
+        current_os = platform.system()
+        # save figure with path adjusted to OS
+        if current_os == 'Windows':
+            plt.savefig(f"saved_plots\{poll_name}.png", dpi=400, bbox_inches='tight') 
+        elif (current_os == 'Linux') or (current_os == 'Darwin') :
+            plt.savefig(f"saved_plots/{poll_name}.png", dpi=400, bbox_inches='tight') 
+        print(f"Plot successfully saved as '{poll_name}.png' in the following directory: 'saved_plots'")
+        plt.close('all') #destroy figure
+
+def create_plt_fig():
+    # print all polls and IDs as guide
+    polls = Poll.all()
+    print("\n\t\t------Available Polls------\n\n")
+    for poll in polls:
+        print(f"\t\t{poll.id}: {poll.title} (created by {poll.owner})")
+
+    # select poll of interest
+    poll_id = int(input("Enter poll you'd like to see a figure for: "))
+    
+
+    # save poll name of selected poll to variable (to pass to create_pie_chart() )
+    poll_name = poll_name_by_id(polls, poll_id)
+
+    # get vote info for selected poll
+    options, votes = Poll.get_info_for_plt(poll_id) 
+
+    # create figure
+    fig = charts.create_pie_chart(options, votes, poll_name)
+    plt.show()
+
+    save_plot(options, votes, poll_name)
+
+
 
 MENU_OPTIONS = {
     "1": prompt_create_poll,
     "2": list_open_polls,
     "3": prompt_vote_poll,
     "4": show_poll_votes,
-    "5": randomize_poll_winner
+    "5": randomize_poll_winner,
+    "6": create_plt_fig
 }
 
 
@@ -100,7 +156,7 @@ def menu():
     with get_connection() as connection:
         database.create_tables(connection)
 
-    while (selection := input(MENU_PROMPT)) != "6":
+    while (selection := input(MENU_PROMPT)) != "7":
         try:
             MENU_OPTIONS[selection]()
         except KeyError:

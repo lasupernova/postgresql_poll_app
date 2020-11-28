@@ -27,6 +27,13 @@ INSERT_OPTION_RETURN_ID = "INSERT INTO options (option_text, poll_id) VALUES (%s
 INSERT_VOTE = "INSERT INTO votes (username, option_id) VALUES (%s, %s);"
 SELECT_OPTION = """SELECT * FROM options WHERE id=%s;"""
 SELECT_VOTES_FOR_OPTION = """SELECT * FROM votes WHERE option_id=%s;"""
+SELECT_OPTIONS_IN_POLL_FOR_PLT = """
+                                 SELECT options.option_text, COUNT(votes.option_id) FROM options
+                                 JOIN polls ON options.poll_id = polls.id
+                                 JOIN votes on options.id = votes.option_id
+                                 WHERE polls.id = %s
+                                 GROUP BY (options.option_text, votes.option_id);
+                                """
 
 def create_tables(connection):
     with connection:
@@ -71,6 +78,12 @@ def get_poll_options(connection, poll_id: int) -> List[Option]:
     with connection:
         with connection.cursor() as cursor:
             cursor.execute(SELECT_POLL_OPTIONS, (poll_id,))
+            return cursor.fetchall()
+
+def get_poll_options_for_plt(connection, poll_id: int) -> List[Option]:
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(SELECT_OPTIONS_IN_POLL_FOR_PLT, (poll_id,))
             return cursor.fetchall()
 
 """Functions for Options"""
